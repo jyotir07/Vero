@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "test": "vitest run",
-    "gen:types": "openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts"
+    "gen:types": "openapi-typescript http://localhost:8000/openapi.json -o src/api/schema.d.ts",
+    "check:types": "openapi-typescript http://localhost:8000/openapi.json -o .schema-check.d.ts && diff src/api/schema.d.ts .schema-check.d.ts && rm -f .schema-check.d.ts"
   },
   "dependencies": {
     "class-variance-authority": "^0.7.1",
@@ -18,7 +19,8 @@
     "lucide-react": "^1.43.0",
     "radix-ui": "^1.6.7",
     "react": "^19.2.8",
-    "react-dom": "^19.2.8"
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",

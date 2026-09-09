@@ -85,6 +85,13 @@ def create_application(
     session.flush()
 
     read = _to_read(session, application)
+
+    # Commit before scheduling. The task runs in its own session and cannot see
+    # uncommitted rows; worse, its row lock on workflow_run would block on this
+    # transaction. Relying on dependency teardown ordering to commit first is not
+    # something the framework guarantees.
+    session.commit()
+
     background.add_task(
         advance_workflow,
         application_id=application.id,

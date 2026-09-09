@@ -19,11 +19,25 @@ def test_selecting_openai_without_a_key_fails_loudly() -> None:
         build_extractor(settings)
 
 
-def test_the_fake_llm_is_the_default() -> None:
+def test_the_offline_provider_is_the_default() -> None:
+    """The default configuration must produce a working demo, not a broken one."""
     from vero.agent.provider.factory import build_provider
-    from vero.agent.provider.fake import FakeLLMProvider
+    from vero.agent.provider.fake import OfflineAgentProvider
 
-    assert isinstance(build_provider(Settings()), FakeLLMProvider)
+    assert isinstance(build_provider(Settings()), OfflineAgentProvider)
+
+
+def test_the_offline_provider_drives_document_check() -> None:
+    import json
+
+    from vero.agent.provider.fake import OfflineAgentProvider
+
+    prompt = json.dumps(
+        {"state": "DOCUMENT_CHECK", "documents": {"unextracted": ["abc"], "missing": []}}
+    )
+    answer = json.loads(OfflineAgentProvider().complete(system="s", user=prompt).content)
+    assert answer["tool"] == "extract_document"
+    assert answer["arguments"]["document_id"] == "abc"
 
 
 def test_selecting_openai_llm_without_a_key_fails_loudly() -> None:

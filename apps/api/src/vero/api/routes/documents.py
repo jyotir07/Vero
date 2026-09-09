@@ -24,11 +24,9 @@ from vero.api.deps import (
 )
 from vero.api.workflow_task import advance_workflow
 from vero.db.models import Document, WorkflowRun
-from vero.domain.enums import Actor, ApplicationState, DocumentType, EventType, WorkflowStatus
+from vero.domain.enums import Actor, DocumentType, EventType
 from vero.domain.schemas import DocumentRead
 from vero.events.recorder import EventRecorder
-from vero.state_machine.machine import apply_transition
-from vero.storage import DocumentStorage
 
 router = APIRouter(prefix="/applications", tags=["documents"])
 
@@ -102,7 +100,8 @@ async def upload_document(
         payload={"document_type": document_type.value},
     )
 
-    _resume_if_waiting(session, run, storage=storage)
+    # Same reason as intake: the background task reads through a separate session.
+    session.commit()
 
     background.add_task(
         advance_workflow,
@@ -111,24 +110,6 @@ async def upload_document(
         provider=provider,
         storage=storage,
         extractor=extractor,
+        resume_after_documents=True,
     )
     return document
-
-
-def _resume_if_waiting(session: SessionDep, run: WorkflowRun, *, storage: DocumentStorage) -> None:
-    if run.current_state is not ApplicationState.MORE_INFORMATION_REQUIRED:
-        return
-
-    source = run.current_state
-    run.current_state = apply_transition(
-        source, ApplicationState.DOCUMENT_CHECK, actor=Actor.APPLICANT
-    )
-    run.status = WorkflowStatus.RUNNING
-    EventRecorder(session).record(
-        run=run,
-        event_type=EventType.STATE_CHANGED,
-        actor=Actor.APPLICANT,
-        from_state=source,
-        to_state=ApplicationState.DOCUMENT_CHECK,
-    )
-    session.flush()
