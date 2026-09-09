@@ -94,9 +94,8 @@ def test_every_registered_tool_has_a_handler() -> None:
     assert set(REGISTRY) - PENDING_TOOLS == set(HANDLERS)
 
 
-def test_pending_tools_are_declared_not_forgotten() -> None:
-    """extract_document needs the document store, which arrives with the extractor."""
+def test_no_tool_is_left_pending() -> None:
+    """Every documented tool now has an implementation behind it."""
     from vero.tools.handlers import PENDING_TOOLS
 
-    assert {"extract_document"} == PENDING_TOOLS
-    assert set(REGISTRY) >= PENDING_TOOLS
+    assert set() == PENDING_TOOLS

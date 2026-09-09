@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Asha Iyer",
+    "employer": "Northwind Analytics",
+    "monthly_income_paise": 15000000,
+    "closing_balance_paise": 42000000,
+    "note": "Spec worked example. Approves at 60 months, refers at 36.",
+    "slug": "asha-approved"
+  },
+  {
+    "name": "Ravi Menon",
+    "employer": "Blue Harbour Logistics",
+    "monthly_income_paise": 9000000,
+    "closing_balance_paise": 6500000,
+    "note": "Thin headroom; lands in the review band.",
+    "slug": "ravi-referred"
+  },
+  {
+    "name": "Meera Nair",
+    "employer": "Copperleaf Retail",
+    "monthly_income_paise": 6000000,
+    "closing_balance_paise": 800000,
+    "note": "Fails on credit score and affordability.",
+    "slug": "meera-rejected"
+  },
+  {
+    "name": "Vikram Rao",
+    "employer": "Stonebridge Foods",
+    "monthly_income_paise": 11000000,
+    "closing_balance_paise": 15000000,
+    "fail": true,
+    "note": "Payslip fails extraction, exercising DOCUMENT_CHECK -> FAILED.",
+    "slug": "vikram-unreadable"
+  },
+  {
+    "name": "Priya Balan",
+    "employer": "Fernhill Media",
+    "monthly_income_paise": 12000000,
+    "closing_balance_paise": 20000000,
+    "confidence": "0.400",
+    "note": "Legible but doubtful; routes to human review on confidence.",
+    "slug": "priya-low-confidence"
+  }
+]

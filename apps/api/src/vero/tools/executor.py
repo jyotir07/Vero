@@ -20,8 +20,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vero.db.models import Application, ToolCall, WorkflowRun
+from vero.document_ai.base import DocumentExtractor
 from vero.domain.enums import Actor, EventType, ToolCallStatus
 from vero.events.recorder import EventRecorder
+from vero.storage import DocumentStorage
 from vero.tools.registry import ToolError, check_tool_permitted, get_tool
 
 
@@ -37,6 +39,8 @@ class ToolContext:
     session: Session
     run: WorkflowRun
     application: Application
+    storage: DocumentStorage
+    extractor: DocumentExtractor
 
 
 @dataclass(frozen=True)
@@ -68,10 +72,14 @@ class ToolExecutor:
         session: Session,
         recorder: EventRecorder,
         handlers: Mapping[str, Handler],
+        storage: DocumentStorage,
+        extractor: DocumentExtractor,
     ) -> None:
         self._session = session
         self._recorder = recorder
         self._handlers = handlers
+        self._storage = storage
+        self._extractor = extractor
 
     def execute(
         self,
@@ -104,7 +112,13 @@ class ToolExecutor:
             return ToolResult(value=recorded.result or {}, replayed=True)
 
         handler = self._handlers[tool_name]
-        context = ToolContext(session=self._session, run=run, application=run.application)
+        context = ToolContext(
+            session=self._session,
+            run=run,
+            application=run.application,
+            storage=self._storage,
+            extractor=self._extractor,
+        )
 
         self._recorder.record(
             run=run,

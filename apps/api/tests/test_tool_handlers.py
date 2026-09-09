@@ -6,20 +6,23 @@ and returns something the agent can reason about.
 """
 
 from decimal import Decimal
+from pathlib import Path
 
 import pytest
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from vero.db.models import Application, Document, HumanReview, RiskAssessment, WorkflowRun
+from vero.document_ai.fake import FakeDocumentExtractor
 from vero.domain.enums import ApplicationState, DocumentStatus, DocumentType
 from vero.domain.money import rupees_to_paise
+from vero.storage import LocalDiskStorage
 from vero.tools import credit, finance, workflow
 from vero.tools.executor import ToolContext
 
 
 @pytest.fixture
-def context(session: Session) -> ToolContext:
+def context(session: Session, tmp_path: Path) -> ToolContext:
     app = Application(
         applicant_name="Asha Iyer",
         applicant_email="asha@example.invalid",
@@ -34,7 +37,13 @@ def context(session: Session) -> ToolContext:
     run = WorkflowRun(application_id=app.id, current_state=ApplicationState.CREDIT_ANALYSIS)
     session.add(run)
     session.flush()
-    return ToolContext(session=session, run=run, application=app)
+    return ToolContext(
+        session=session,
+        run=run,
+        application=app,
+        storage=LocalDiskStorage(root=tmp_path / "store"),
+        extractor=FakeDocumentExtractor(),
+    )
 
 
 def test_get_application_returns_the_figures_the_agent_reasons_about(
