@@ -1,0 +1,19 @@
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: vero
+      POSTGRES_PASSWORD: vero
+      POSTGRES_DB: vero
+    ports:
+      - "5432:5432"
+    volumes:
+      - vero-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vero -d vero"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  vero-pgdata:
