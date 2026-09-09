@@ -34,6 +34,11 @@ packages = ["src/vero"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+filterwarnings = [
+    "error",
+    # starlette's TestClient imports a deprecated anyio alias; not ours to fix.
+    "ignore:The anyio.abc.BlockingPortal alias is deprecated:DeprecationWarning",
+]
 
 [tool.ruff]
 line-length = 100
