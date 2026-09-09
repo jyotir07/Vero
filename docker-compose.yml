@@ -1,12 +1,15 @@
 services:
   db:
-    image: postgres:16-alpine
+    # Debian-based, not -alpine: musl images fail with 'exec format error'
+    # on Docker Desktop's WSL2 backend on this host.
+    image: postgres:16
     environment:
       POSTGRES_USER: vero
       POSTGRES_PASSWORD: vero
       POSTGRES_DB: vero
     ports:
-      - "5432:5432"
+      # 5433 on the host: 5432 is already taken by a local Postgres install.
+      - "5433:5432"
     volumes:
       - vero-pgdata:/var/lib/postgresql/data
     healthcheck:
