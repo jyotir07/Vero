@@ -151,7 +151,15 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['agent_action_id'], ['agent_action.id'], ondelete='SET NULL'),
     sa.ForeignKeyConstraint(['workflow_run_id'], ['workflow_run.id'], ondelete='CASCADE'),
     sa.PrimaryKeyConstraint('id'),
-    sa.UniqueConstraint('idempotency_key', name='uq_tool_call_idempotency')
+    )
+    # Unique among successful calls only: a step may fail repeatedly and succeed once,
+    # and all those rows share the same key.
+    op.create_index(
+        'uq_tool_call_idempotency',
+        'tool_call',
+        ['idempotency_key'],
+        unique=True,
+        postgresql_where=sa.text("status = 'OK'"),
     )
     # ### end Alembic commands ###
 

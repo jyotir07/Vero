@@ -10,7 +10,7 @@ Two rules shape this schema:
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Any
+from typing import Any, ClassVar
 
 from sqlalchemy import (
     BigInteger,
@@ -25,6 +25,7 @@ from sqlalchemy import (
     Text,
     UniqueConstraint,
     func,
+    text,
 )
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
@@ -40,12 +41,15 @@ from vero.domain.enums import (
     ValidationResult,
     WorkflowStatus,
 )
+from vero.domain.money import Paise
 from vero.policy.decision import PolicyOutcome
 from vero.policy.rules import Band
 
 
 class Base(DeclarativeBase):
-    pass
+    # Money columns are typed Paise, not int, so the domain type survives the round
+    # trip and callers cannot quietly pass rupees where paise are expected.
+    type_annotation_map: ClassVar[dict[Any, Any]] = {Paise: BigInteger}
 
 
 def _enum(python_enum: type[Any], name: str) -> Enum:
@@ -73,11 +77,16 @@ class Application(Base):
     applicant_name: Mapped[str] = mapped_column(String(200), nullable=False)
     applicant_email: Mapped[str] = mapped_column(String(320), nullable=False)
 
-    gross_monthly_income: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    monthly_debt: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    requested_amount: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    gross_monthly_income: Mapped[Paise] = mapped_column(nullable=False)
+    monthly_debt: Mapped[Paise] = mapped_column(nullable=False)
+    requested_amount: Mapped[Paise] = mapped_column(nullable=False)
     tenure_months: Mapped[int] = mapped_column(Integer, nullable=False)
     annual_rate_bps: Mapped[int] = mapped_column(Integer, nullable=False, default=1400)
+
+    # Seeds the simulated credit bureau. Set by fixtures so a demo can reach a chosen
+    # outcome on purpose; when null the bureau derives a score from the application id.
+    # There is no real bureau and no real score anywhere in this system.
+    synthetic_credit_score: Mapped[int | None] = mapped_column(Integer, nullable=True)
 
     run: Mapped["WorkflowRun | None"] = relationship(back_populates="application")
     documents: Mapped[list["Document"]] = relationship(back_populates="application")
@@ -203,7 +212,16 @@ class AgentAction(Base):
 
 class ToolCall(Base):
     __tablename__ = "tool_call"
-    __table_args__ = (UniqueConstraint("idempotency_key", name="uq_tool_call_idempotency"),)
+    # Unique among successful calls only. One step may fail several times and succeed
+    # once, and every one of those rows describes the same step, so they share a key.
+    __table_args__ = (
+        Index(
+            "uq_tool_call_idempotency",
+            "idempotency_key",
+            unique=True,
+            postgresql_where=text("status = 'OK'"),
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
@@ -244,8 +262,8 @@ class RiskAssessment(Base):
     )
 
     credit_score: Mapped[int] = mapped_column(Integer, nullable=False)
-    emi: Mapped[int] = mapped_column(BigInteger, nullable=False)
-    disposable_income: Mapped[int] = mapped_column(BigInteger, nullable=False)
+    emi: Mapped[Paise] = mapped_column(nullable=False)
+    disposable_income: Mapped[Paise] = mapped_column(nullable=False)
     dti_current: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)
     dti_proposed: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)
     lti: Mapped[Decimal] = mapped_column(Numeric(10, 6), nullable=False)
