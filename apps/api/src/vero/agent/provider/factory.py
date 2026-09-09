@@ -5,15 +5,16 @@ key and no network. Reaching the real model is a deliberate act.
 """
 
 from vero.agent.provider.base import LLMProvider
-from vero.agent.provider.fake import FakeLLMProvider
+from vero.agent.provider.fake import OfflineAgentProvider
 from vero.config import Settings
 
 
 def build_provider(settings: Settings) -> LLMProvider:
     if settings.llm_provider == "fake":
-        # An empty script: anything that actually calls the model in this configuration
-        # fails loudly rather than quietly returning a canned answer.
-        return FakeLLMProvider([])
+        # A rule-based stand-in, not a language model. The default configuration has to
+        # produce a working demo without an API key, and an empty script would fail the
+        # first agent step of every run.
+        return OfflineAgentProvider()
 
     if not settings.openai_api_key:
         raise ValueError("LLM_PROVIDER=openai requires OPENAI_API_KEY")

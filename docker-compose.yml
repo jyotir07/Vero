@@ -2,7 +2,7 @@ services:
   db:
     # Debian-based, not -alpine: musl images fail with 'exec format error'
     # on Docker Desktop's WSL2 backend on this host.
-    image: postgres:16
+    image: postgres:16.15
     environment:
       POSTGRES_USER: vero
       POSTGRES_PASSWORD: vero

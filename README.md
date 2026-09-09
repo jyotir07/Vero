@@ -36,8 +36,14 @@ correctness is mandatory.*
 
 ## Status
 
-Phase 1 (core workflow) in progress. See [`docs/plan.md`](docs/plan.md) for the milestone
-breakdown and [`docs/00-handoff.md`](docs/00-handoff.md) to pick the project up cold.
+**Phase 1 (core workflow) is complete.** An application can be submitted, driven through
+the state machine by the agent, and reach approval, rejection, human review, or failure —
+with every step recorded in an immutable audit trail.
+
+Next: Phase 2 (reliability) adds the reviewer UI, applicant chat, queue-backed execution
+and workflow resume. See [`docs/plan.md`](docs/plan.md) for the milestone breakdown,
+[`docs/decisions.md`](docs/decisions.md) for what was decided while building, and
+[`docs/00-handoff.md`](docs/00-handoff.md) to pick the project up cold.
 
 No latency figures are published here. Any that appear later will come from real telemetry
 recorded by the system, never from estimates.
@@ -65,9 +71,26 @@ uv run uvicorn vero.main:app --reload      # http://localhost:8000
 cd ../web && npm install && npm run dev    # http://localhost:5173
 ```
 
-Set `LLM_PROVIDER=openai`, `DOCUMENT_EXTRACTOR=openai`, and `OPENAI_API_KEY` in `.env` to
-run against real models. The defaults are deterministic fakes so the test suite and local
-development need no network access or credentials.
+Then open http://localhost:5173 and submit an application.
+
+The defaults need no API key and no network. `LLM_PROVIDER=fake` uses a rule-based
+stand-in that reads the same structured prompt the real agent gets and returns the
+obvious next action, which is enough to drive the whole workflow; `DOCUMENT_EXTRACTOR=fake`
+reads structured data the synthetic PDFs carry. Neither is a language model and neither
+pretends to be one. Set `LLM_PROVIDER=openai`, `DOCUMENT_EXTRACTOR=openai` and
+`OPENAI_API_KEY` to run against real models.
+
+Generate the synthetic documents first if you want files to upload:
+
+```bash
+cd apps/api && uv run python ../../scripts/generate_fixtures.py
+```
+
+To check the whole stack end to end while both servers are running:
+
+```bash
+cd apps/api && uv run python ../../scripts/smoke_demo.py
+```
 
 ## Tests
 
@@ -75,3 +98,7 @@ development need no network access or credentials.
 cd apps/api && uv run pytest && uv run ruff check . && uv run mypy src
 cd apps/web && npm run typecheck && npm run lint && npm test
 ```
+
+The frontend's types are generated from the backend's OpenAPI schema. With the API
+running, `npm run gen:types` regenerates them and `npm run check:types` fails if the
+committed copy has drifted.

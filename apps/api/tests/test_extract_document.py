@@ -31,7 +31,7 @@ def _fixture_bytes(payload: dict[str, object]) -> bytes:
 def context(session: Session, tmp_path: Path) -> ToolContext:
     app = Application(
         applicant_name="Asha Iyer",
-        applicant_email="asha@example.invalid",
+        applicant_email="asha@example.com",
         gross_monthly_income=rupees_to_paise(Decimal("150000")),
         monthly_debt=rupees_to_paise(Decimal("35000")),
         requested_amount=rupees_to_paise(Decimal("800000")),
@@ -126,7 +126,7 @@ def test_a_document_belonging_to_another_application_is_refused(
     """Document ids come from model output, so ownership is checked, not assumed."""
     other = Application(
         applicant_name="Ravi Menon",
-        applicant_email="ravi@example.invalid",
+        applicant_email="ravi@example.com",
         gross_monthly_income=rupees_to_paise(Decimal("90000")),
         monthly_debt=rupees_to_paise(Decimal("10000")),
         requested_amount=rupees_to_paise(Decimal("300000")),

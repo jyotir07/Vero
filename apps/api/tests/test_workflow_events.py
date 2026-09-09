@@ -21,7 +21,7 @@ from vero.events.recorder import EventRecorder
 def run(session: Session) -> WorkflowRun:
     app = Application(
         applicant_name="Asha Iyer",
-        applicant_email="asha@example.invalid",
+        applicant_email="asha@example.com",
         gross_monthly_income=rupees_to_paise(Decimal("150000")),
         monthly_debt=rupees_to_paise(Decimal("35000")),
         requested_amount=rupees_to_paise(Decimal("800000")),
@@ -139,7 +139,7 @@ def test_two_events_cannot_share_a_sequence_number(
 def test_sequences_are_scoped_to_their_own_run(session: Session, run: WorkflowRun) -> None:
     other_app = Application(
         applicant_name="Ravi Menon",
-        applicant_email="ravi@example.invalid",
+        applicant_email="ravi@example.com",
         gross_monthly_income=rupees_to_paise(Decimal("90000")),
         monthly_debt=rupees_to_paise(Decimal("10000")),
         requested_amount=rupees_to_paise(Decimal("300000")),

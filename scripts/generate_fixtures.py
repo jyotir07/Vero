@@ -80,7 +80,9 @@ def _rupees(paise: int) -> str:
     return f"Rs {paise / 100:,.2f}"
 
 
-def _write_pdf(path: Path, title: str, lines: list[tuple[str, str]], payload: dict[str, Any]) -> None:
+def _write_pdf(
+    path: Path, title: str, lines: list[tuple[str, str]], payload: dict[str, Any]
+) -> None:
     path.parent.mkdir(parents=True, exist_ok=True)
     # pageCompression=0: the fake extractor reads the marker from the raw bytes, and a
     # compressed content stream would hide it.
@@ -94,7 +96,11 @@ def _write_pdf(path: Path, title: str, lines: list[tuple[str, str]], payload: di
 
     pdf.setFont("Helvetica-Oblique", 9)
     pdf.drawString(20 * mm, height - 32 * mm, "SYNTHETIC DOCUMENT - technical demonstration only.")
-    pdf.drawString(20 * mm, height - 37 * mm, "Not a real financial document. No real person or institution.")
+    pdf.drawString(
+        20 * mm,
+        height - 37 * mm,
+        "Not a real financial document. No real person or institution.",
+    )
 
     y = height - 55 * mm
     pdf.setFont("Helvetica", 11)

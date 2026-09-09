@@ -1,0 +1,4 @@
+# The synthetic fixture PDFs are generated without page compression, so they are mostly
+# ASCII and git's heuristic treats them as text. With core.autocrlf on Windows that
+# rewrites line endings inside the file, changing its bytes and its content hash.
+*.pdf binary
