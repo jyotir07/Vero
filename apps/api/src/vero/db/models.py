@@ -46,6 +46,8 @@ from vero.policy.decision import PolicyOutcome
 from vero.policy.rules import Band
 
 
+# clock_timestamp() rather than now(): now() is transaction start time in Postgres, so
+# every row written in one transaction would share a created_at and could not be ordered.
 class Base(DeclarativeBase):
     # Money columns are typed Paise, not int, so the domain type survives the round
     # trip and callers cannot quietly pass rupees where paise are expected.
@@ -68,10 +70,13 @@ class Application(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.clock_timestamp(),
+        onupdate=func.clock_timestamp(),
+        nullable=False,
     )
 
     applicant_name: Mapped[str] = mapped_column(String(200), nullable=False)
@@ -98,10 +103,13 @@ class WorkflowRun(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
     updated_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False
+        DateTime(timezone=True),
+        server_default=func.clock_timestamp(),
+        onupdate=func.clock_timestamp(),
+        nullable=False,
     )
 
     application_id: Mapped[uuid.UUID] = mapped_column(
@@ -129,7 +137,7 @@ class Document(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
 
     application_id: Mapped[uuid.UUID] = mapped_column(
@@ -160,7 +168,7 @@ class WorkflowEvent(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
 
     application_id: Mapped[uuid.UUID] = mapped_column(
@@ -188,7 +196,7 @@ class AgentAction(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
 
     workflow_run_id: Mapped[uuid.UUID] = mapped_column(
@@ -225,7 +233,7 @@ class ToolCall(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
 
     workflow_run_id: Mapped[uuid.UUID] = mapped_column(
@@ -251,7 +259,7 @@ class RiskAssessment(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
 
     application_id: Mapped[uuid.UUID] = mapped_column(
@@ -282,7 +290,7 @@ class HumanReview(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     created_at: Mapped[datetime] = mapped_column(
-        DateTime(timezone=True), server_default=func.now(), nullable=False
+        DateTime(timezone=True), server_default=func.clock_timestamp(), nullable=False
     )
 
     application_id: Mapped[uuid.UUID] = mapped_column(

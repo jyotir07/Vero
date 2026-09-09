@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from vero.api.routes import applications, documents, events
+
 app = FastAPI(
     title="Vero API",
     version="0.1.0",
@@ -17,7 +19,11 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+app.include_router(applications.router)
+app.include_router(documents.router)
+app.include_router(events.router)
 
-@app.get("/health")
+
+@app.get("/health", tags=["health"])
 def health() -> dict[str, str]:
     return {"status": "ok"}

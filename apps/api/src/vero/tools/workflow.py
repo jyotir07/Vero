@@ -59,13 +59,12 @@ def check_required_documents(
 
 
 def request_information(context: ToolContext, arguments: dict[str, Any]) -> dict[str, Any]:
-    """Ask the applicant for a document, and count the ask.
+    """Tell the applicant what is missing.
 
-    The count is what bounds the MORE_INFORMATION_REQUIRED loop; without it an applicant
-    who never responds keeps the workflow alive forever.
+    This notifies; it does not bound the loop. The runner counts round trips when it
+    pauses, because a cycle is one exchange with the applicant rather than one tool
+    call, and the agent may reasonably call this more than once in a turn.
     """
-    context.run.document_request_count += 1
-    context.session.flush()
     return {
         "document_type": arguments["document_type"],
         "reason": arguments.get("reason", ""),

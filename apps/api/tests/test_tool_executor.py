@@ -26,7 +26,7 @@ from vero.tools.registry import ToolNotPermittedError
 def run(session: Session) -> WorkflowRun:
     app = Application(
         applicant_name="Asha Iyer",
-        applicant_email="asha@example.invalid",
+        applicant_email="asha@example.com",
         gross_monthly_income=rupees_to_paise(Decimal("150000")),
         monthly_debt=rupees_to_paise(Decimal("35000")),
         requested_amount=rupees_to_paise(Decimal("800000")),

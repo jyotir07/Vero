@@ -25,7 +25,7 @@ from vero.tools.executor import ToolContext
 def context(session: Session, tmp_path: Path) -> ToolContext:
     app = Application(
         applicant_name="Asha Iyer",
-        applicant_email="asha@example.invalid",
+        applicant_email="asha@example.com",
         gross_monthly_income=rupees_to_paise(Decimal("150000")),
         monthly_debt=rupees_to_paise(Decimal("35000")),
         requested_amount=rupees_to_paise(Decimal("800000")),
@@ -144,15 +144,31 @@ def test_check_required_documents_is_satisfied_when_all_are_present(
     assert result["complete"] is True
 
 
-def test_request_information_counts_against_the_loop_bound(
+def test_request_information_reports_what_it_asked_for(
     session: Session, context: ToolContext
 ) -> None:
-    """The bound is what stops MORE_INFORMATION_REQUIRED cycling forever."""
-    before = context.run.document_request_count
-    workflow.request_information(
+    result = workflow.request_information(
         context, {"document_type": "BANK_STATEMENT", "reason": "missing"}
     )
-    assert context.run.document_request_count == before + 1
+    assert result["document_type"] == "BANK_STATEMENT"
+    assert result["reason"] == "missing"
+
+
+def test_request_information_does_not_move_the_loop_bound(
+    session: Session, context: ToolContext
+) -> None:
+    """The runner counts round trips to the applicant, not tool calls.
+
+    The agent may call this more than once in a turn, and a cycle is one exchange with
+    the applicant. Counting here made the MORE_INFORMATION_REQUIRED -> FAILED edge
+    unreachable, because the runner paused before the agent could ask again.
+    """
+    before = context.run.document_request_count
+    for _ in range(3):
+        workflow.request_information(
+            context, {"document_type": "BANK_STATEMENT", "reason": "missing"}
+        )
+    assert context.run.document_request_count == before
 
 
 def test_create_human_review_records_why_the_case_escalated(

@@ -224,12 +224,19 @@ class AgentRunner:
 
         missing = set(DocumentType) - {d.document_type for d in documents}
         if missing:
+            # Only pause once everything on file has been dealt with, otherwise the
+            # agent never gets a turn to ask and the cycle count never advances.
+            if any(d.status is DocumentStatus.UPLOADED for d in documents):
+                return None
+
+            # The runner owns the cycle count rather than the tool: a cycle is one
+            # round trip to the applicant, which is what the bound is counting.
+            run.document_request_count += 1
+            self._session.flush()
             if run.document_request_count > MAX_DOCUMENT_REQUESTS:
                 return (ApplicationState.FAILED, Actor.SYSTEM)
-            if run.document_request_count > 0:
-                # The agent asked for the document, so the pause is attributed to it.
-                return (ApplicationState.MORE_INFORMATION_REQUIRED, Actor.AGENT)
-            return None
+            # The agent asked for the document, so the pause is attributed to it.
+            return (ApplicationState.MORE_INFORMATION_REQUIRED, Actor.AGENT)
 
         if all(d.status is DocumentStatus.EXTRACTED for d in documents):
             return (ApplicationState.INCOME_VERIFICATION, Actor.AGENT)

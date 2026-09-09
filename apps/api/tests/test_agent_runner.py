@@ -30,6 +30,7 @@ from vero.db.models import (
 from vero.document_ai.fake import FIXTURE_MARKER, FakeDocumentExtractor
 from vero.domain.enums import (
     ApplicationState,
+    DocumentStatus,
     DocumentType,
     EventType,
     ValidationResult,
@@ -67,7 +68,7 @@ class Scenario:
     ) -> "Scenario":
         self.application = Application(
             applicant_name="Asha Iyer",
-            applicant_email="asha@example.invalid",
+            applicant_email="asha@example.com",
             gross_monthly_income=rupees_to_paise(Decimal("150000")),
             monthly_debt=rupees_to_paise(Decimal("35000")),
             requested_amount=rupees_to_paise(Decimal("800000")),
@@ -305,3 +306,23 @@ def test_the_assessment_that_decided_the_case_is_persisted(scenario: Scenario) -
     assessment = s.session.scalars(select(RiskAssessment)).one()
     assert assessment.credit_score == 742
     assert assessment.dti_proposed == Decimal("0.357431")
+
+
+def test_everything_on_file_is_extracted_before_pausing(scenario: Scenario) -> None:
+    """Two documents can be waiting at once, and both should be dealt with.
+
+    Pausing after the first would waste a request cycle and leave the application
+    looking incomplete while it sits with the applicant.
+    """
+    s = scenario.build(
+        documents={
+            DocumentType.PAY_SLIP: {"monthly_income_paise": 15_000_000},
+            DocumentType.ID_PROOF: {"name": "Asha Iyer"},
+        }
+    )
+    s.runner(s.cooperative_responder()).run(s.run)
+
+    assert s.run.current_state is ApplicationState.MORE_INFORMATION_REQUIRED
+    stored = s.session.scalars(select(Document)).all()
+    assert [d.status for d in stored] == [DocumentStatus.EXTRACTED] * 2
+    assert s.run.document_request_count == 1

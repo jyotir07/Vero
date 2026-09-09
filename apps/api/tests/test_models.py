@@ -14,7 +14,7 @@ from vero.domain.money import rupees_to_paise
 def _application(**overrides: object) -> Application:
     fields: dict[str, object] = {
         "applicant_name": "Asha Iyer",
-        "applicant_email": "asha@example.invalid",
+        "applicant_email": "asha@example.com",
         "gross_monthly_income": rupees_to_paise(Decimal("150000")),
         "monthly_debt": rupees_to_paise(Decimal("35000")),
         "requested_amount": rupees_to_paise(Decimal("800000")),
@@ -83,4 +83,4 @@ def test_run_reaches_its_application_through_a_relationship(session: Session) ->
     run = WorkflowRun(application_id=app.id)
     session.add(run)
     session.flush()
-    assert run.application.applicant_email == "asha@example.invalid"
+    assert run.application.applicant_email == "asha@example.com"
