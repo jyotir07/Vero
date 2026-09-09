@@ -87,6 +87,41 @@ the key on failures (`…#failed1`) so retries would not collide; that worked bu
 step across three different keys. A partial unique index over `status = 'OK'` lets the
 attempts share the real key.
 
+### Tool retries are bounded, recorded, and selective
+
+The documents described `CREDIT_ANALYSIS -> FAILED` as reached when the bureau call had
+"retries exhausted", and spec section 12 requires bounded, observable retries. There were
+none: the first failure went straight to `FAILED`. The documents promised reliability the
+code did not have, which is worse than promising nothing.
+
+Three attempts by default, every attempt written to `tool_call` with its number and
+status. Only failures that plausibly resolve themselves are retried — a `DocumentNotFound`
+or an unreadable file will not improve, and an unrecognised error may have left a side
+effect behind, so neither is repeated.
+
+Each attempt runs inside a savepoint. A real database error aborts the surrounding
+transaction, so without one the retry would run on a session Postgres has already
+poisoned, and a partial write from the failed attempt would survive. The synthetic errors
+in most of the retry tests cannot show this, so one test triggers a genuine statement
+timeout inside a handler; removing the savepoint fails only that test.
+
+### Timeouts are enforced by Postgres, not by a thread
+
+`tool_timeout_seconds` was declared in configuration and never read — a setting that
+reads as a guarantee and is not one.
+
+The obvious fix is wrong. Wrapping a handler in a thread with a deadline cannot work
+here: handlers use the SQLAlchemy session, sessions are not thread-safe, and abandoning a
+thread that is still writing corrupts session state. What can actually hang is a database
+statement waiting on a lock — the deadlock that took the API down in Phase 1 — so
+`statement_timeout` and `lock_timeout` are set on every connection and the database
+cancels the statement itself.
+
+This also made `ToolCallStatus.TIMEOUT` reachable; it had been an unused enum value.
+
+Deliberately not added: a settings knob for the retry budget. It is constructor-injected
+and tested, and adding configuration nothing reads is the mistake this section is about.
+
 ### `clock_timestamp()`, not `now()`
 
 `now()` is transaction start time in Postgres, so every row written in one transaction

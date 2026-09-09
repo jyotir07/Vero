@@ -18,7 +18,10 @@ class Settings(BaseSettings):
     storage_dir: str = "./storage"
 
     llm_timeout_seconds: float = 30.0
-    tool_timeout_seconds: float = 10.0
+
+    # Applied to every database connection as statement_timeout and lock_timeout.
+    # Zero disables the limit, which migrations and deliberate long jobs need.
+    db_statement_timeout_seconds: float = 10.0
 
 
 @lru_cache
