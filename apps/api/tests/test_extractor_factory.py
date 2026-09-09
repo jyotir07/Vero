@@ -17,3 +17,18 @@ def test_selecting_openai_without_a_key_fails_loudly() -> None:
     settings = Settings(document_extractor="openai", openai_api_key="")
     with pytest.raises(ValueError, match="OPENAI_API_KEY"):
         build_extractor(settings)
+
+
+def test_the_fake_llm_is_the_default() -> None:
+    from vero.agent.provider.factory import build_provider
+    from vero.agent.provider.fake import FakeLLMProvider
+
+    assert isinstance(build_provider(Settings()), FakeLLMProvider)
+
+
+def test_selecting_openai_llm_without_a_key_fails_loudly() -> None:
+    from vero.agent.provider.factory import build_provider
+
+    settings = Settings(llm_provider="openai", openai_api_key="")
+    with pytest.raises(ValueError, match="OPENAI_API_KEY"):
+        build_provider(settings)
