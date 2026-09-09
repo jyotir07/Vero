@@ -57,7 +57,7 @@ Requires Docker, [uv](https://docs.astral.sh/uv/), and Node 20+.
 
 ```bash
 cp .env.example .env          # defaults use the fake LLM/extractor — no API key needed
-docker compose up -d db
+docker compose up -d db      # publishes Postgres on host port 5433
 
 cd apps/api && uv sync && uv run alembic upgrade head
 uv run uvicorn vero.main:app --reload      # http://localhost:8000
