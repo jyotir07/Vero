@@ -3,17 +3,25 @@
 Entry point for anyone (human or agent) picking this project up cold.
 Read this first, then `ai-credit-underwriting-agent.md` for the full spec.
 
-Last updated: 2026-09-09
+Last updated: 2026-09-09 (Phase 1 complete)
 
 ---
 
 ## 1. Current state
 
-**No code exists yet.** The repo contains documentation only.
+**Phase 1 is built.** The workflow runs end to end on `dev/p1`.
 
-- `new-proj/` is its own git repo (root: `C:\Users\jyoti\Desktop\Coding\new-proj`),
-  separate from the home-directory repo it used to sit inside.
-- All five spec docs are tracked. Nothing else is.
+- `apps/api` - FastAPI backend: state machine, policy engine, agent runner, tool layer,
+  document extraction, HTTP API.
+- `apps/web` - React + TypeScript frontend: application list, intake form, detail view
+  with stepper, document checklist, risk panel and workflow timeline.
+- 432 backend tests, ruff and strict mypy clean. `scripts/smoke_demo.py` drives four
+  applications through the running stack and checks each reaches its expected outcome.
+- The default configuration needs no API key and no network. See the README.
+
+Not built: reviewer UI and review actions, applicant chat, voice, Redis, queues and
+workers, SSE, S3, authentication, AWS deployment, CI/CD, the observability page. Those
+are Phases 2 to 4, listed in section 10.
 
 ---
 
@@ -159,18 +167,37 @@ These are settled. Do not relitigate without a reason.
 
 Flagged explicitly because they were judgement calls, not user directives.
 
-### 8.1 Policy thresholds - TO BE DRAFTED
+### 8.1 Policy thresholds - DRAFTED AND APPROVED
 
-The spec shows an example applicant (DTI 23.3%, synthetic credit score 742) but
-**never defines what actually fails**. A synthetic policy table is needed:
+Five gates, three bands each. The authoritative copy is
+`apps/api/src/vero/policy/rules.py`; these values are invented for this demonstration
+and are not any real lender's criteria.
 
-- maximum DTI
-- minimum credit score
-- loan-to-income cap
-- what triggers `HUMAN_REVIEW`
+| Gate | PASS | REVIEW | FAIL |
+|---|---|---|---|
+| Credit score (300-900) | >= 720 | 650-719 | < 650 |
+| DTI after the loan | <= 40% | 40-50% | > 50% |
+| Loan-to-income (annual) | <= 3.5x | 3.5-5.0x | > 5.0x |
+| Disposable income after EMI | >= Rs 25,000 | Rs 15,000-25,000 | < Rs 15,000 |
+| Verified vs stated income | within 10% | 10-25% | > 25% |
 
-The demo narrative in spec section 18 depends on these values, since scenes 3-5
-require deliberately tripping them. Draft during planning, get approval.
+Any FAIL rejects outright; else any REVIEW escalates; else approve. Hard fails
+auto-reject rather than escalating, so the deterministic reject path stays demonstrable.
+
+Band edges belong to PASS: exactly 40% DTI passes, exactly 50% refers. Every edge is
+pinned by a test.
+
+Two figures the spec left implicit:
+
+- The spec's stated DTI of 23.3% is `existing debt / income` and **excludes** the new
+  instalment. Both are stored; policy gates on the post-loan figure.
+- The product is 14% p.a. reducing balance, tenure in {12, 24, 36, 48, 60} months,
+  principal Rs 50,000 to Rs 50,00,000.
+
+**Calibration.** The spec's worked applicant approves at 60 months (EMI Rs 18,614.60,
+post-loan DTI 35.7%) and lands in review at 36 months (Rs 27,342.10, 41.6%), tripping
+only the DTI gate. Same person, same loan, different tenure — so scenes 2 and 5 of the
+demo need no contrived fixture.
 
 ### 8.2 Sync vs async agent execution - DECIDED
 
@@ -260,13 +287,31 @@ reduce latency, how is it deployed, and what would change at 10x scale.
 | `02-agent-workflow.md` | State diagram + agent execution boundary sequence diagram. |
 | `03-voice-latency.md` | Voice pipeline + latency budget diagrams. |
 | `04-data-and-audit-flow.md` | Data and audit event flow. |
+| `plan.md` | Phase 1 milestone breakdown. |
+| `decisions.md` | Decisions taken while building, with reasoning. |
 
-Note: the diagrams in `01-` and `03-` reference a Node.js API and a generic
-"Voice Gateway". Those predate the Python decision in section 7 above and should
-be updated when the code lands.
+`01-system-architecture.md` has been redrawn against what was built: it showed a
+Node.js API, which predated the Python decision in section 7. `03-voice-latency.md`
+never referenced Node and is unchanged; the "Voice Gateway" box was only ever in `01-`.
 
 ---
 
 ## 14. Next step
 
-Write the Phase 1 plan. Not started yet.
+Phase 1 is done. Phase 2 is reliability: reviewer UI and review actions, applicant chat
+and the `Conversation` entity, durable queue-backed execution, and workflow resume after
+a human decision.
+
+Three things Phase 1 learned that Phase 2 should carry:
+
+1. **The in-process executor is already swappable.** Workflow state has lived in
+   Postgres from the first commit, and `api/workflow_task.py` is the only file that
+   knows execution is in-process. It already takes a row lock on the run, so concurrent
+   workers will not interleave state changes on one application.
+2. **Test the thing that runs, not a convenient stand-in.** Three bugs survived 429
+   passing tests because `TestClient` runs background tasks synchronously and hands them
+   the request's own session. They surfaced within minutes of starting a real server.
+   `scripts/smoke_demo.py` exists so that check is one command.
+3. **A test that cannot fail is worse than no test.** Two written in Phase 1 passed
+   with the code they guarded deleted. Fault injection found them; it is cheap and
+   worth repeating on anything load-bearing.

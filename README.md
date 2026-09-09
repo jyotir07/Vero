@@ -36,8 +36,14 @@ correctness is mandatory.*
 
 ## Status
 
-Phase 1 (core workflow) in progress. See [`docs/plan.md`](docs/plan.md) for the milestone
-breakdown and [`docs/00-handoff.md`](docs/00-handoff.md) to pick the project up cold.
+**Phase 1 (core workflow) is complete.** An application can be submitted, driven through
+the state machine by the agent, and reach approval, rejection, human review, or failure —
+with every step recorded in an immutable audit trail.
+
+Next: Phase 2 (reliability) adds the reviewer UI, applicant chat, queue-backed execution
+and workflow resume. See [`docs/plan.md`](docs/plan.md) for the milestone breakdown,
+[`docs/decisions.md`](docs/decisions.md) for what was decided while building, and
+[`docs/00-handoff.md`](docs/00-handoff.md) to pick the project up cold.
 
 No latency figures are published here. Any that appear later will come from real telemetry
 recorded by the system, never from estimates.

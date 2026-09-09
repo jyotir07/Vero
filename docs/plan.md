@@ -1,5 +1,12 @@
 # Vero — Phase 1 Implementation Plan
 
+> **Status: complete.** All nine milestones are built on `dev/p1`. This document is the
+> plan as approved before implementation and has not been rewritten to match what was
+> built. Where the two differ, `decisions.md` records the change and why. Notable
+> deviations: the request-cycle count moved from the tool to the runner (the documented
+> bound was otherwise unreachable), and the offline agent provider became a working
+> rule-based stand-in rather than an empty script.
+
 ## Context
 
 `docs/00-handoff.md` §14 says the next step is "Write the Phase 1 plan. Not started yet."

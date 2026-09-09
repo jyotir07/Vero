@@ -17,6 +17,7 @@ import time
 import urllib.error
 import urllib.request
 import uuid
+from dataclasses import dataclass
 from pathlib import Path
 
 FIXTURES = Path(__file__).resolve().parent.parent / "apps" / "api" / "fixtures" / "documents"
@@ -24,6 +25,88 @@ DOCS = [
     ("PAY_SLIP", "payslip.pdf"),
     ("BANK_STATEMENT", "bank-statement.pdf"),
     ("ID_PROOF", "id-proof.pdf"),
+]
+
+
+@dataclass(frozen=True)
+class Case:
+    label: str
+    slug: str
+    tenure: int
+    score: int | None
+    income: int
+    debt: int
+    amount: int
+    expected: str
+
+
+# One case per fixture applicant, so every generated document set is exercised and each
+# of the four outcomes is reached. The two HUMAN_REVIEW cases escalate for different
+# reasons: one on a policy band, one on extraction confidence.
+CASES = [
+    Case(
+        label="approves at 60mo",
+        slug="asha-approved",
+        tenure=60,
+        score=742,
+        income=15_000_000,
+        debt=3_500_000,
+        amount=80_000_000,
+        expected="APPROVED",
+    ),
+    Case(
+        label="refers at 36mo (DTI)",
+        slug="asha-approved",
+        tenure=36,
+        score=742,
+        income=15_000_000,
+        debt=3_500_000,
+        amount=80_000_000,
+        expected="HUMAN_REVIEW",
+    ),
+    Case(
+        label="refers on confidence",
+        slug="priya-low-confidence",
+        tenure=60,
+        score=780,
+        income=12_000_000,
+        debt=1_000_000,
+        amount=30_000_000,
+        expected="HUMAN_REVIEW",
+    ),
+    Case(
+        label="rejects on score",
+        slug="meera-rejected",
+        tenure=60,
+        score=600,
+        income=6_000_000,
+        debt=2_000_000,
+        amount=20_000_000,
+        expected="REJECTED",
+    ),
+    Case(
+        label="fails on extraction",
+        slug="vikram-unreadable",
+        tenure=60,
+        score=742,
+        income=11_000_000,
+        debt=1_500_000,
+        amount=30_000_000,
+        expected="FAILED",
+    ),
+    # Everything passes except the credit score, so this isolates that band. Values are
+    # computed from the policy engine, not guessed: at 12 months the same applicant
+    # carries a 73% post-loan DTI and is a hard reject.
+    Case(
+        label="refers on credit score",
+        slug="ravi-referred",
+        tenure=60,
+        score=700,
+        income=9_000_000,
+        debt=1_000_000,
+        amount=30_000_000,
+        expected="HUMAN_REVIEW",
+    ),
 ]
 
 
@@ -65,18 +148,20 @@ def post_file(base: str, path: str, document_type: str, file_path: Path) -> dict
         return json.load(response)
 
 
-def run_case(base: str, label: str, slug: str, tenure: int, score: int | None) -> str:
+def run_case(base: str, case: Case) -> str:
     created = post_json(
         base,
         "/applications",
         {
-            "applicant_name": label,
+            "applicant_name": case.label,
             "applicant_email": "demo@example.com",
-            "gross_monthly_income_paise": 15_000_000,
-            "monthly_debt_paise": 3_500_000,
-            "requested_amount_paise": 80_000_000,
-            "tenure_months": tenure,
-            "synthetic_credit_score": score,
+            # Stated income matches the fixture payslip, so the income-divergence gate
+            # stays clean and the gate the case is actually about is the one that trips.
+            "gross_monthly_income_paise": case.income,
+            "monthly_debt_paise": case.debt,
+            "requested_amount_paise": case.amount,
+            "tenure_months": case.tenure,
+            "synthetic_credit_score": case.score,
         },
     )
     application_id = created["id"]
@@ -86,7 +171,7 @@ def run_case(base: str, label: str, slug: str, tenure: int, score: int | None) -
             base,
             f"/applications/{application_id}/documents",
             document_type,
-            FIXTURES / slug / filename,
+            FIXTURES / case.slug / filename,
         )
 
     # An upload returns before its background task finishes, so a waiting state may
@@ -114,7 +199,7 @@ def run_case(base: str, label: str, slug: str, tenure: int, score: int | None) -
     assert isinstance(events, list)
     transitions = [e for e in events if e["event_type"] == "STATE_CHANGED"]
     chain = " -> ".join([transitions[0]["from_state"], *[e["to_state"] for e in transitions]])
-    print(f"  {label:<22} {state:<26} {len(events):>3} events")
+    print(f"  {case.label:<26} {state:<26} {len(events):>3} events")
     print(f"    {chain}")
     return state
 
@@ -129,27 +214,24 @@ def main() -> int:
         return 1
 
     print(f"driving the stack through {args.base}\n")
-    cases = [
-        ("approves at 60mo", "asha-approved", 60, 742, "APPROVED"),
-        ("refers at 36mo", "asha-approved", 36, 742, "HUMAN_REVIEW"),
-        ("rejects on score", "asha-approved", 60, 600, "REJECTED"),
-        ("fails on extraction", "vikram-unreadable", 60, 742, "FAILED"),
-    ]
 
     failures = 0
-    for label, slug, tenure, score, expected in cases:
+    for case in CASES:
         try:
-            actual = run_case(args.base, label, slug, tenure, score)
+            actual = run_case(args.base, case)
         except urllib.error.HTTPError as exc:
-            print(f"  {label:<22} HTTP {exc.code}: {exc.read()[:200]!r}")
+            print(f"  {case.label:<26} HTTP {exc.code}: {exc.read()[:200]!r}")
             failures += 1
             continue
-        if actual != expected:
-            print(f"    EXPECTED {expected}, GOT {actual}")
+        if actual != case.expected:
+            print(f"    EXPECTED {case.expected}, GOT {actual}")
             failures += 1
 
     print()
-    print("all cases reached their expected outcome" if not failures else f"{failures} case(s) wrong")
+    if failures:
+        print(f"{failures} case(s) did not reach the expected outcome")
+    else:
+        print("all cases reached their expected outcome")
     return 1 if failures else 0
 
 
