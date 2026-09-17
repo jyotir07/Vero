@@ -9,6 +9,7 @@ import json
 
 from fastapi.testclient import TestClient
 
+from vero.api.routes.documents import MAX_UPLOAD_BYTES
 from vero.document_ai.fake import FIXTURE_MARKER
 
 
@@ -210,6 +211,19 @@ def test_an_oversized_upload_is_refused(api_client: TestClient) -> None:
         data={"document_type": "PAY_SLIP"},
     )
     assert response.status_code == 413
+
+
+def test_an_upload_exactly_at_the_limit_is_accepted(api_client: TestClient) -> None:
+    """The bounded read must not turn the ceiling into an off-by-one."""
+    created = _create(api_client)
+    header = b"%PDF-1.4\n"
+    content = header + b"x" * (MAX_UPLOAD_BYTES - len(header))
+    response = api_client.post(
+        f"/applications/{created['id']}/documents",
+        files={"file": ("max.pdf", content, "application/pdf")},
+        data={"document_type": "PAY_SLIP"},
+    )
+    assert response.status_code == 201
 
 
 def test_the_timeline_reads_as_a_story(api_client: TestClient) -> None:
