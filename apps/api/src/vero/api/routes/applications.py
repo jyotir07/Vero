@@ -16,7 +16,13 @@ from vero.api.deps import (
 from vero.api.workflow_task import advance_workflow
 from vero.db.models import Application, Document, RiskAssessment, WorkflowRun
 from vero.domain.enums import DocumentType
-from vero.domain.schemas import ApplicationCreate, ApplicationRead, ApplicationSummary
+from vero.domain.schemas import (
+    ApplicationCreate,
+    ApplicationRead,
+    ApplicationSummary,
+    DocumentRead,
+    RiskAssessmentRead,
+)
 
 router = APIRouter(prefix="/applications", tags=["applications"])
 
@@ -49,9 +55,11 @@ def _to_read(session: SessionDep, application: Application) -> ApplicationRead:
         annual_rate_bps=application.annual_rate_bps,
         state=run.current_state,
         status=run.status,
-        documents=[d for d in documents],  # type: ignore[misc]
+        documents=[DocumentRead.model_validate(d) for d in documents],
         missing_documents=sorted(set(DocumentType) - present),
-        risk_assessment=assessment,  # type: ignore[arg-type]
+        risk_assessment=(
+            RiskAssessmentRead.model_validate(assessment) if assessment is not None else None
+        ),
     )
 
 
