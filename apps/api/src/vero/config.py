@@ -17,6 +17,8 @@ class Settings(BaseSettings):
 
     storage_dir: str = "./storage"
 
+    cors_origins: list[str] = ["http://localhost:5173"]
+
     llm_timeout_seconds: float = 30.0
 
     # Applied to every database connection as statement_timeout and lock_timeout.
