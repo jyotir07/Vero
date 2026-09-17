@@ -62,7 +62,9 @@ async def upload_document(
     file: Annotated[UploadFile, File()],
 ) -> Document:
     application = load_application(session, application_id)
-    content = await file.read()
+    # One byte past the limit is enough to know it is over; reading the rest would
+    # load an arbitrarily large upload into memory only to reject it.
+    content = await file.read(MAX_UPLOAD_BYTES + 1)
     _validate(content)
 
     uri = storage.put(
