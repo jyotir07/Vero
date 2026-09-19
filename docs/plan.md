@@ -107,14 +107,19 @@ apps/api/          pyproject.toml, alembic/, src/vero/
   domain/          money.py, enums.py, schemas.py   ← Pydantic DTOs = OpenAPI source of truth
   state_machine/   transitions.py (the table), machine.py
   policy/          product.py, metrics.py, rules.py, decision.py
-  agent/           runner.py, validator.py, prompts.py, schemas.py, provider/{base,openai,fake}.py
-  tools/           registry.py, documents.py, finance.py, credit.py, workflow.py
-  document_ai/     base.py, openai_vision.py, fake.py
-  db/              models.py, session.py
-  api/routes/      applications.py, documents.py, events.py, health.py
+  agent/           runner.py, validator.py, prompts.py, schemas.py,
+                   provider/{base,factory,fake,openai_provider}.py
+  tools/           registry.py, executor.py, handlers.py, documents.py, finance.py,
+                   credit.py, workflow.py
+  document_ai/     base.py, factory.py, openai_vision.py, fake.py
+  db/              models.py, schema.py, session.py
+  api/             deps.py, workflow_task.py
+  api/routes/      applications.py, documents.py, events.py   (/health lives in main.py)
   events/          recorder.py
+                   main.py, config.py, storage.py
 apps/web/          Vite + React + TS + Tailwind + shadcn
-scripts/           generate_fixtures.py (reportlab synthetic PDFs), gen_types.sh
+scripts/           generate_fixtures.py (reportlab synthetic PDFs), smoke_demo.py
+                   (frontend types: npm run gen:types in apps/web)
 docker-compose.yml postgres
 ```
 
