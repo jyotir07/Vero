@@ -127,6 +127,34 @@ and tested, and adding configuration nothing reads is the mistake this section i
 `now()` is transaction start time in Postgres, so every row written in one transaction
 shares a `created_at` and cannot be ordered.
 
+### The upload is read only as far as the size limit
+
+The handler read the whole upload into memory and then compared its length to
+`MAX_UPLOAD_BYTES`, so an oversized file was paid for in full before being refused. It now
+reads one byte past the limit, which is all that is needed to decide.
+
+This bounds the handler, not the request: FastAPI has already received the body and
+spooled a large one to a temporary file. Capping the body itself belongs to a reverse
+proxy, and is left for the deployment work in Phase 4.
+
+### `/health` answers for the database too
+
+The endpoint returned `ok` whenever the process was up, so an instance that could not
+reach Postgres stayed in rotation. It now runs `SELECT 1` on the request session and
+answers `503` when SQLAlchemy raises.
+
+It goes through the session dependency rather than the engine because that is what the
+rest of the app uses and what a test can override. SQLAlchemy connects lazily, so a dead
+database surfaces inside the handler, where it becomes a `503` — not during dependency
+setup, where it would become a `500`.
+
+### CORS origins are configuration
+
+The allowed origin was hard-coded to the Vite dev server, so a deployed frontend needed a
+code change. `CORS_ORIGINS` carries it, defaulting to the same value. It is a JSON list
+because that is how pydantic-settings reads a list from the environment; adding
+comma-separated parsing would be more code for the same result.
+
 ---
 
 ## Simplifications from the spec
