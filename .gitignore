@@ -10,7 +10,11 @@ __pycache__/
 # Node
 node_modules/
 dist/
+
 .vite/
+
+# Written by npm run check:types; only cleaned up when the diff passes
+.schema-check.d.ts
 
 # Env / secrets
 .env
